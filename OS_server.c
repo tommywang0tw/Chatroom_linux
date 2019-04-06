@@ -94,6 +94,7 @@ int main()
             //handle clients message
             if(client[i].socket > 0 && FD_ISSET(client[i].socket, &read_fds) && client[i].username[0] == '\0')
             {
+                //Set the username
                 memset(username, 0, sizeof(username));
                 if((n = read(client[i].socket, username, sizeof(username))) <= 0)
                 {
@@ -101,6 +102,8 @@ int main()
                     {
                         close(client[i].socket);
                         FD_CLR(client[i].socket, &master);
+                        client[i].socket = 0;
+                        client[i].username[0] = '\0';
                     }
                     else
                     {
@@ -128,6 +131,8 @@ int main()
                     }
                     close(client[i].socket);
                     FD_CLR(client[i].socket, &master);
+                    client[i].socket = 0;
+                    client[i].username[0] = '\0';
                 }
                 else
                 {
@@ -135,15 +140,15 @@ int main()
                     {
                         if(j!=client[i].socket && j!=listener && FD_ISSET(j, &master))
                         {
-                            
                             if(write(j, buf, n) == -1)
                                 perror("write failed");
                             if(write(j, client[i].username, sizeof(client[i].username)) == -1)
                                 perror("write failed");
-                            strtok(buf, "\n");
-                            printf("\t%s: %s\n", client[i].username, buf);
+                            
                         }
                     }
+                    strtok(buf, "\n");
+                    printf("\t%s: %s\n", client[i].username, buf);
                 }
             }
         }
