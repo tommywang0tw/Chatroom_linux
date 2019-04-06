@@ -101,7 +101,7 @@ int main()
                 {
                     for(j=0;j<=fd_max;j++)
                     {
-                        if(j!=sock_client[i] && j!=listener)
+                        if(j!=sock_client[i] && j!=listener && FD_ISSET(j, &master))
                         {
                             if(write(j, buf, n) == -1)
                             {
