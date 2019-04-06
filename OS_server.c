@@ -6,16 +6,22 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string.h>
+#define MAX_CLIENTS 4
 int main()
 {
     int listener;
     struct sockaddr_in addr;
     struct sockaddr_in client;
     socklen_t len;
-    int sock_client;
+    int sock_client[MAX_CLIENTS];
     int fd_max;
     int i, j, n;
     char buf[32];
+    //Initialize client array
+    for(i=0;i<MAX_CLIENTS;i++)
+    {
+        sock_client[i] = 0;
+    }
     fd_set master;
     fd_set read_fds;
     FD_ZERO(&master);
@@ -36,112 +42,77 @@ int main()
     
     FD_SET(listener, &master);
     fd_max = listener;
-    
     for(;;)
     {
-        /*
-        len = sizeof(client);
-        sock_client = accept(listener, (struct sockaddr *)&client, &len);
-        printf("\t[Info] Receive connection from %s on socket %d\n", inet_ntoa(client.sin_addr), sock_client);        
-        */
         read_fds = master;
-        printf("before select\n");
         if(select(fd_max+1, &read_fds, NULL, NULL, NULL) == -1)
         {
             perror("select");
             exit(4);
         }
-        printf("Pass select\n");
-        for(i=0;i<=fd_max;i++)
+        if(FD_ISSET(listener, &read_fds))
         {
-            if(FD_ISSET(i, &master))
+            len = sizeof(client);
+            for(i=0;i<MAX_CLIENTS;i++)
             {
-                len = sizeof(client);
-                sock_client = accept(listener, (struct sockaddr *)&client, &len);
-                if(sock_client == -1)
+                if(sock_client[i] == 0)
                 {
-                    perror("accept");
-                }
-                else
-                {
-                    FD_SET(sock_client, &master);
-                    if(sock_client > fd_max)
+                    sock_client[i] = accept(listener, (struct sockaddr *)&client, &len);
+                    if(sock_client[i] == -1)
                     {
-                        fd_max = sock_client;
-                    }
-                    printf("\t[Info] Receive connection from %s on socket %d\n", inet_ntoa(client.sin_addr), sock_client);
-                }
-            }
-            else
-            {
-                if(FD_ISSET(i, &master))
-                {
-                    if((n = read(i, buf, sizeof(buf))) <= 0)
-                    {
-                        if(n == 0)
-                        {
-                            printf("socket %d hung up.\n", i);
-                        }   
-                        else
-                        {
-                            perror("read");
-                        }
-                        close(i);
-                        FD_CLR(i, &master);
+                        perror("client: ");
                     }
                     else
                     {
-                        for(j=0; j<=fd_max;j++)
+                        FD_SET(sock_client[i], &master);
+                        if(sock_client[i] > fd_max)
                         {
-                            if(j!=i && j!=listener)
-                            {
-                                if(write(j, buf, n) == -1)
-                                {
-                                    perror("write");
-                                }
-                            }
+                            fd_max = sock_client[i];
                         }
-                    }   
+                        printf("\t[Info] Receive connection from %s on socket %d\n", inet_ntoa(client.sin_addr), sock_client[i]);
+                    }
+                break;
                 }
             }
-        } 
+            if(i == MAX_CLIENTS)
+                fprintf(stderr,"Chatroom is too full to accept new client\n");
+        }
+
+        for(i=0;i<=MAX_CLIENTS;i++)
+        {
+            //handle clients message
+            if(sock_client[i] > 0 && FD_ISSET(sock_client[i], &read_fds))
+            {
+                memset(buf, 0, sizeof(buf));
+                if((n = read(sock_client[i], buf, sizeof(buf))) <= 0)
+                {
+                    if(n == 0)
+                    {
+                        printf("client %d hung up\n", sock_client[i]);
+                    }
+                    else
+                    {
+                        perror("read:");
+                    }
+                    close(sock_client[i]);
+                    FD_CLR(sock_client[i], &master);
+                }
+                else
+                {
+                    for(j=0;j<=fd_max;j++)
+                    {
+                        if(j!=sock_client[i] && j!=listener)
+                        {
+                            if(write(j, buf, n) == -1)
+                            {
+                                perror("write:");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-        
-    /* 接受來自 TCP 用戶端地連線要求*/
-    
-    printf("\t[Info] wait for connection...\n");
-    len = sizeof(client);
-    sock_client = accept(listener, (struct sockaddr *)&client, &len);
-    printf("\t[Info] Testing...\n");
-    char *paddr_str = inet_ntoa(client.sin_addr);
-    printf("\t[Info] Receive connection from %s...\n", paddr_str);
-    
-    /* 傳送 5 個字元 */
-    
-    printf("\t[Info] Say hello back...\n");
-    write(sock_client, "HELLO\n", 6);
-    
-    /*Get message from client*/
-    
-    memset(buf, 0, sizeof(buf));
-    printf("\t[Info] Get message from client...\n");
-    n = read(sock_client, buf, sizeof(buf));    
-    printf("\t[Info] Receive %d bytes: %s\n", n, buf);
-    
-    /*Get another message*/
-    
-    memset(buf, 0, sizeof(buf));
-    printf("\t[Info] Get message from client...\n");
-    n = read(sock_client, buf, sizeof(buf));    
-    printf("\t[Info] Receive %d bytes: %s\n", n, buf);
-    
-    /* 結束 TCP 對話 */
-    /*
-    printf("\t[Info] Close client connection...\n");
-    close(sock_client);
-    */
-    /* 結束 listen 的 socket */
-    printf("\t[Info] Close self connection...\n");
     close(listener);
     return 0;
 }  
