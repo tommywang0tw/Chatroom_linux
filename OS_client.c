@@ -6,14 +6,16 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define SERVER_IP "127.0.0.1"
+#include "Chatroom.h"
 int main()
 {
     struct sockaddr_in server;
     int sock;
     char *msg = "Message back!\n";
-    char buf[32];
-    int n, i;
+    char buf[BUFSIZE];
+    char username[USERNAMESIZE];
+    char other_username[USERNAMESIZE];
+    int n;
     fd_set file_descriptors;
     /* Create a socket */
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -29,6 +31,25 @@ int main()
         perror("connect failed: ");
         exit(1);
     }
+    printf("Connect successfully!\n");
+    printf("Please enter your username\n (1 ~ %d characters): ", USERNAMESIZE);
+    for(;;)
+    {
+        memset(username, 0, sizeof(username));
+        fgets(username, sizeof(username), stdin);
+        if(username[0] == '\n')
+        {
+            printf("Enter at least one character!\n");
+            printf("Please enter again: ");
+            continue;
+        }
+        break;
+    }
+    strtok(username, "\n");
+    /* Send username to server */
+    if(write(sock, username, sizeof(username)) == -1)
+        perror("write failed");
+    printf("----------Start Talking to Your Friends!----------\n");
     for(;;)
     {
         /* Initialize file descriptor set*/
@@ -46,14 +67,11 @@ int main()
             //handle user input
             memset(buf, 0, sizeof(buf));
             fgets(buf, sizeof(buf), stdin);
-            if((n = write(sock, buf, sizeof(buf))) == -1)
-            {
-                perror("write failed: ");
-            }
-            else
-            {
-                printf("\t[Info] Send %d bytes: %s\n", n, buf);
-            }
+            if(write(sock, username, sizeof(username)) == -1)
+                perror("write failed");
+            if(write(sock, buf, sizeof(buf)) == -1)
+                perror("write failed");
+            printf("\tyou: %s", buf);
         }
         if(FD_ISSET(sock, &file_descriptors))
         {
@@ -73,7 +91,10 @@ int main()
             }
             else
             {
-                printf("\t[Info] Receive %d bytes: %s\n", n, buf);
+                memset(other_username, 0, sizeof(other_username));
+                if(read(sock, other_username, sizeof(other_username)) == -1)
+                    perror("read failed");
+                printf("\t%s: %s", other_username, buf);
             }
         }
     }
