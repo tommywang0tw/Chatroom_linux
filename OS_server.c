@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-int main() {
+#include <time.h>
+int main(int argc, char *argv[]) {
   int listener;
   struct sockaddr_in server_addr;
   struct sockaddr_in client_addr;
@@ -16,7 +16,23 @@ int main() {
   client_info client[MAX_CLIENTS];
   int fd_max;
   int i, j, n;
+  FILE *fp;
   message msg;
+  if((fp = fopen("Chatroomlog.txt", "w"))==NULL)
+  {
+	printf("Open file error!!\n");
+	exit(1);
+  }
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+
+  /* Specify port number by argument */
+  if(argc != 2)
+  {
+	fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+	exit(1);
+  }
+
   // Initialize client array
   for (i = 0; i < MAX_CLIENTS; i++) {
     client[i].socket = 0;
@@ -31,7 +47,8 @@ int main() {
 
   /* socket setting */
   server_addr.sin_family = AF_INET;
-  server_addr.sin_port = htons(12345);
+  //argv[1] is the port number
+  server_addr.sin_port = htons(atoi(argv[1]));
   server_addr.sin_addr.s_addr = INADDR_ANY;
   if (bind(listener, (struct sockaddr *)&server_addr, sizeof(server_addr)) ==
       -1) {
@@ -43,7 +60,10 @@ int main() {
     perror("listen failed");
     exit(1);
   }
-  printf("Type: \"/quit\" for closing the server\n");
+  fprintf(fp, "*****Chatromm log*****\n%d/%d/%d %d:%d:%d\n\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  fprintf(fp, "Type: \"/quit\" for closing the server\n");
+  printf("Type: \"/quit\" for closing the server\n"); 
+  fprintf(fp, "----------Chatroom----------\n");
   printf("----------Chatroom----------\n");
   FD_SET(listener, &master);
   fd_max = listener;
@@ -60,12 +80,14 @@ int main() {
       fgets(msg.msg, sizeof(msg.msg), stdin);
       if(strcmp(msg.msg, "/quit\n") == 0)
       {
+        fprintf(fp, "Disconnecting the clients......\n");
         printf("Disconnecting the clients......\n");
         for(j=0;j<MAX_CLIENTS;j++)
         {
           if(client[j].socket > 0)
             close(client[j].socket);
         }
+        fprintf(fp, "Goodbye!\n");
         printf("Goodbye!\n");
         break;
       }
@@ -89,6 +111,7 @@ int main() {
         }
       }
       if (i == MAX_CLIENTS)
+        fprintf(fp, "Chatroom is too full to accpet new client\n");
         fprintf(stderr, "Chatroom is too full to accept new client\n");
     }
     // handle message from clients
@@ -102,6 +125,7 @@ int main() {
             FD_CLR(client[i].socket, &master);
             client[i].socket = 0;
             if (client[i].username[0] != '\0') {
+              fprintf(fp, "\t%s has left the chatroom!\n", client[i].username);
               printf("\t%s has left the chatroom!\n", client[i].username);
               msg.type = DISCONNECT;
               strcpy(msg.username, client[i].username);
@@ -123,6 +147,7 @@ int main() {
           // set username
           if (msg.type == SET_USERNAME) {
             strcpy(client[i].username, msg.username);
+            fprintf(fp, "\t%s has joined the chatroom!\n", client[i].username);
             printf("\t%s has joined the chatroom!\n", client[i].username);
             for (j = 0; j < MAX_CLIENTS; j++) {
               // notify other clients that a new client just joined in
@@ -135,6 +160,7 @@ int main() {
           // normal message
           else {
             //print the message on the server
+            fprintf(fp, "\t%s: %s", msg.username, msg.msg);
             printf("\t%s: %s", msg.username, msg.msg);
             // broadcast the message to all the clients except the one sent the
             // message
@@ -149,6 +175,7 @@ int main() {
       }
     }
   }
+  fclose(fp);
   close(listener);
   return 0;
 }
