@@ -43,14 +43,32 @@ int main() {
     perror("listen failed");
     exit(1);
   }
+  printf("Type: \"/quit\" for closing the server\n");
   printf("----------Chatroom----------\n");
   FD_SET(listener, &master);
   fd_max = listener;
   for (;;) {
     read_fds = master;
+    FD_SET(STDIN_FILENO, &read_fds);
     if (select(fd_max + 1, &read_fds, NULL, NULL, NULL) == -1) {
       perror("select");
       exit(1);
+    }
+    /* Input from user */
+    if(FD_ISSET(STDIN_FILENO, &read_fds))
+    {
+      fgets(msg.msg, sizeof(msg.msg), stdin);
+      if(strcmp(msg.msg, "/quit\n") == 0)
+      {
+        printf("Disconnecting the clients......\n");
+        for(j=0;j<MAX_CLIENTS;j++)
+        {
+          if(client[j].socket > 0)
+            close(client[j].socket);
+        }
+        printf("Goodbye!\n");
+        break;
+      }
     }
     /* new connection is coming */
     if (FD_ISSET(listener, &read_fds)) {
@@ -88,7 +106,6 @@ int main() {
               msg.type = DISCONNECT;
               strcpy(msg.username, client[i].username);
               // notify other clients that a client just disconnected
-              
               for (j = 0; j < MAX_CLIENTS; j++) {
                 if (FD_ISSET(client[j].socket, &master)) {
                   if (write(client[j].socket, &msg, sizeof(message)) == -1)

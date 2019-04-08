@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-int main() {
+int main(int argc, char *argv[]) {
   struct sockaddr_in server;
   int sock;
   char myUsername[USERNAMESIZE];
@@ -16,11 +16,17 @@ int main() {
   fd_set file_descriptors;
   /* Create a socket */
   sock = socket(AF_INET, SOCK_STREAM, 0);
-
+  /* Use arguments to specify server IP and port */
+  if(argc != 3)
+  {
+    fprintf(stderr, "Please specify server IP and port: %s <IP> <port>\n", argv[0]);
+    exit(1);
+  }
   server.sin_family = AF_INET;
-  server.sin_port = htons(12345);
-  /* 127.0.0.1 is the IP address of local host */
-  inet_pton(AF_INET, SERVER_IP, &server.sin_addr.s_addr);
+  /* argv[2] is the port */ 
+  server.sin_port = htons(atoi(argv[2]));
+  /* argv[1] is the IP address of the server */
+  inet_pton(AF_INET, argv[1], &server.sin_addr.s_addr);
 
 
   printf("Please enter your username\n (1 ~ %d characters): ", USERNAMESIZE);
@@ -60,9 +66,16 @@ int main() {
       exit(1);
     }
     if (FD_ISSET(STDIN_FILENO, &file_descriptors)) {
-      // handle user input
+      /* handle user input */
       memset(&msg, 0, sizeof(message));
       fgets(msg.msg, sizeof(msg.msg), stdin);
+      // "/quit" cmd to disconnect from server
+      if(strcmp(msg.msg, "/quit\n") == 0)
+      {
+        printf("Goodbye! %s\n", myUsername);
+        break;
+      }
+      // Normal messgae
       strcpy(msg.username, myUsername);
       msg.type = MESSAGE;
       printf("\t%s(you): %s", msg.username, msg.msg);
