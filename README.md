@@ -6,9 +6,9 @@ Written by Tommy, Eric.
 
 run make
 
-Then run: ./server <port>
+Then run: ./server [port]
 
-and for clients: ./client <IP> <port>
+and for clients: ./client [IP] [port]
 
 
 For example:
