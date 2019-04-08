@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
   /* Send username to server */
   if (write(sock, &msg, sizeof(message)) == -1)
     perror("write failed");
+  printf("Type \"/quit\" for exit\n");
   printf("----------Start Talking to Your Friends!----------\n");
   for (;;) {
     /* Initialize file descriptor set*/
@@ -94,9 +95,9 @@ int main(int argc, char *argv[]) {
         }
       } else {
         if (msg.type == DISCONNECT) {
-          printf("\t%s has left the chatroom!\n", msg.username);
+          printf("\t[Info]%s has left the chatroom!\n", msg.username);
         } else if (msg.type == SET_USERNAME) {
-          printf("\t%s has joined the chatroom!\n", msg.username);
+          printf("\t[Info]%s has joined the chatroom!\n", msg.username);
         } else {
           printf("\t%s: %s", msg.username, msg.msg);
         }

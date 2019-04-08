@@ -110,9 +110,10 @@ int main(int argc, char *argv[]) {
           break;
         }
       }
-      if (i == MAX_CLIENTS)
+      if (i == MAX_CLIENTS) {
         fprintf(fp, "Chatroom is too full to accpet new client\n");
         fprintf(stderr, "Chatroom is too full to accept new client\n");
+      }
     }
     // handle message from clients
     for (i = 0; i < MAX_CLIENTS; i++) {
@@ -125,8 +126,8 @@ int main(int argc, char *argv[]) {
             FD_CLR(client[i].socket, &master);
             client[i].socket = 0;
             if (client[i].username[0] != '\0') {
-              fprintf(fp, "\t%s has left the chatroom!\n", client[i].username);
-              printf("\t%s has left the chatroom!\n", client[i].username);
+              fprintf(fp, "\t[Info]%s has left the chatroom!\n", client[i].username);
+              printf("\t[Info]%s has left the chatroom!\n", client[i].username);
               msg.type = DISCONNECT;
               strcpy(msg.username, client[i].username);
               // notify other clients that a client just disconnected
@@ -147,8 +148,8 @@ int main(int argc, char *argv[]) {
           // set username
           if (msg.type == SET_USERNAME) {
             strcpy(client[i].username, msg.username);
-            fprintf(fp, "\t%s has joined the chatroom!\n", client[i].username);
-            printf("\t%s has joined the chatroom!\n", client[i].username);
+            fprintf(fp, "\t[Info]%s has joined the chatroom!\n", client[i].username);
+            printf("\t[Info]%s has joined the chatroom!\n", client[i].username);
             for (j = 0; j < MAX_CLIENTS; j++) {
               // notify other clients that a new client just joined in
               if (j != i && FD_ISSET(client[j].socket, &master)) {
