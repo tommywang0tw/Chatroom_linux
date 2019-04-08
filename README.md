@@ -13,7 +13,7 @@ and for clients: ./client <IP> <port>
 
 For example:
 
-If we want to build up a server with opened port 3045, we use this cmd:
+If we want to build up a server with opened port 3045, we use this command:
 
 ./server 3045
 
@@ -21,6 +21,6 @@ Then, if clients are connecting to the server of local host, use:
 
 ./client 127.0.0.1 3045
 
-Note: 127.0.0.1 can be replaced by the IP address of the server if it's
+Note: 127.0.0.1 can be replaced by the IP address of the server if it's not local host
 
-not local host
+Note: The maximum number of clients is set in the file "Chatroom.h". 
